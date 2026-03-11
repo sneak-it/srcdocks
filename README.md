@@ -48,6 +48,7 @@ The entire server structure is rebuilt on every restart, so any files actively w
 7. `STOCK_SM_PLUGINS` (Irrelevant to CS2) - If not empty (Default) will delete all but the specified default plugins that ship with SourceMod. If you want to keep Basebans and Basecommands you would specify `basebans,basecommands`. If you want to delete all plugins just specify any non-empty value thats not the name of a default plugin.
 8. `VERSION_PIN` - Can be used to pin the Server to a specific version rather than using the latest version (Full folder name, ex v_13337)
 9. `FAKELATEST` - When set / not empty, the server will use the `steam.inf` file from the latest version, no matter what version the server files are actually from. Game Updates often are non-breaking to the network protocol but can be breaking to plugins, this can be used as a stopgap in case of breaking updates to get the server back up until patches are available for the parts that broke.
+10. `AUTOUPDATE` - When unset or 1, defaults to server auto updating. When set to 0, server will NOT automatically update.
 
 IP / PORT are also what will be accessed to do the healthcheck. If you need to access a different IP/port for that you can override it with `HEALTH_IP` and `HEALTH_PORT` respectively
 
