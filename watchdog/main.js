@@ -302,6 +302,12 @@ const addons = {
 const baseUrlMM = `https://mms.alliedmods.net/mmsdrop/${process.env.MM_VERSION || "1.11"}`;
 const baseUrlSM = `https://sm.alliedmods.net/smdrop/${process.env.SM_VERSION || "1.10"}`;
 
+// A 404 page must not become a version string, and then a download URL.
+const getText = (url) => fetch(url).then(x => {
+	if(!x.ok) throw new Error(`HTTP ${x.status} for ${url}`);
+	return x.text();
+});
+
 async function checkAddonUpdates(initial) {
 	// Check for addon updates up to 2 days after a game update
 	let doCheck = initial || (Date.now() - lastGameUpdate < 1000 * 60 * 60 * 24 * 2);
@@ -318,19 +324,21 @@ async function checkAddonUpdates(initial) {
 	execSync("mkdir -p /repo/sm/ /repo/mm/");
 
 	const [latestMM, latestSM] = await Promise.all([
-		manageMM && fetch(`${baseUrlMM}/mmsource-latest-linux`).then(x => x.text()),
-		manageSM && fetch(`${baseUrlSM}/sourcemod-latest-linux`).then(x => x.text())
+		manageMM && getText(`${baseUrlMM}/mmsource-latest-linux`),
+		manageSM && getText(`${baseUrlSM}/sourcemod-latest-linux`)
 	]);
 
 	async function dl(whatShort, base, path) {
 		execSync(`rm -rf /tmp/${whatShort} || true`);
 
-		await execP(`set -o pipefail; curl -s "${base}/${path}" | tar xz --owner=1000 -C /tmp --one-top-level=${whatShort}`, {shell: "/bin/bash"})
+		await execP(`set -o pipefail; curl -fsSL --proto '=https' --proto-redir '=https' "${base}/${path}" | tar xz --no-same-owner -C /tmp --one-top-level=${whatShort}`, {shell: "/bin/bash"})
+
+		// World-readable so server containers on any UID can read; only the watchdog writes.
+		await execP(`chmod -R a+rX,u+w,go-w /tmp/${whatShort}/`);
 
 		await execP(`rm -rf /repo/${whatShort}/* || true`);
 		await execP(`mv /tmp/${whatShort}/* /repo/${whatShort}/`);
-		// World-readable so server containers on any UID can read; only the watchdog writes.
-		await execP(`chmod -R a+rX,u+w,go-w /repo/${whatShort}/`);
+		await execP(`rm -rf /tmp/${whatShort}`);
 	}
 
 	if(latestMM && latestMM != addons.latestMM) {
@@ -357,8 +365,12 @@ async function checkAddonUpdates(initial) {
 	}
 }
 
-setInterval(checkAddonUpdates, 1000 * 60 * 10);
-checkAddonUpdates(true);
+const runAddonUpdates = (initial) => checkAddonUpdates(initial).catch((err) => {
+	console.error("Addon update check failed:", err);
+});
+
+setInterval(runAddonUpdates, 1000 * 60 * 10);
+runAddonUpdates(true);
 
 /*
 	This system was initially supposed to rebuild a server image and re-create server containers
