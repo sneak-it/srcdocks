@@ -1,4 +1,4 @@
-FROM node:26-trixie-slim AS node
+FROM node:26-trixie-slim
 
 RUN dpkg --add-architecture i386 \
 		&& apt-get update \
@@ -6,17 +6,6 @@ RUN dpkg --add-architecture i386 \
         ca-certificates \
 				curl
 
-
-
-FROM node AS node-modules
-
-WORKDIR /INSTALL
-COPY ./watchdog/*.* ./
-RUN npm install --omit=dev
-
-
-
-FROM node
 
 ENV SM_VERSION=1.11
 ENV MM_VERSION=1.11
@@ -49,7 +38,6 @@ VOLUME ["/repo"]
 WORKDIR /watchdog
 
 COPY ./watchdog/*.js ./
-COPY --from=node-modules /INSTALL/node_modules/ ./node_modules/
 
 RUN chown -R srcds ./ /steamcmd
 

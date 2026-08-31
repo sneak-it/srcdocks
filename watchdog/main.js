@@ -2,7 +2,6 @@
 //const docker = new Docker({socketPath: '/var/run/docker.sock'});
 
 const fs = require("fs");
-const fetch = require("node-fetch");
 const {spawn, execSync, exec} = require("child_process");
 const execP = (require("util")).promisify(exec);
 
