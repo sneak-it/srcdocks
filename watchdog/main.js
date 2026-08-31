@@ -78,7 +78,8 @@ class AppManager {
 	getLatestVersion() {
 		return fetch(`${updateCheckUrl}${this.app.versionId}`)
 			.then(res => res.json())
-			.then(json => json.response.required_version);
+			// Frozen apps (eg. legacy csgo) have no version feed; 1 still triggers the initial download.
+			.then(json => json.response.required_version || 1);
 	}
 }
 
@@ -144,7 +145,7 @@ const downloadManager = new (class {
 		if(!this.tasks.length)
 			return;
 
-		const {manager} = this.tasks[0];
+		const {manager, version} = this.tasks[0];
 
 		try {
 			await this.downloadApp(`${repoDir}/${manager.app.name}`, manager.app);
@@ -152,6 +153,12 @@ const downloadManager = new (class {
 			this.tasks.shift();
 
 			manager.checkInstalledVersion();
+
+			// The app can never reach the advertised version, so stop re-downloading it every check.
+			if(manager.latestVersion < version) {
+				console.warn("App %s is still version %s after installing %s, not retrying. Check the version_appid in APPS.", manager.app.name, manager.latestVersion, version);
+				manager.latestVersion = version;
+			}
 		} catch(ex) {
 			console.error("Failed to update / download %s, retrying later...", manager.app.name, ex);
 			// We'll retry this later
