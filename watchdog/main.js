@@ -329,7 +329,8 @@ async function checkAddonUpdates(initial) {
 
 		await execP(`rm -rf /repo/${whatShort}/* || true`);
 		await execP(`mv /tmp/${whatShort}/* /repo/${whatShort}/`);
-		await execP(`chmod -R 0777 /repo/${whatShort}/`);
+		// World-readable so server containers on any UID can read; only the watchdog writes.
+		await execP(`chmod -R a+rX,u+w,go-w /repo/${whatShort}/`);
 	}
 
 	if(latestMM && latestMM != addons.latestMM) {
