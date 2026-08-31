@@ -72,6 +72,11 @@ loadLatestVersion() {
 		ln -sf /srcds/srv/steamclient.so ~/.steam/sdk64/
 	fi
 
+	# CS:GO bundles a libgcc_s that predates the distro libstdc++ linking against it
+	if [[ $APP_NAME == "csgo" ]]; then
+		rm -f /srcds/srv/bin/libgcc_s.so.1
+	fi
+
 	# While we're here we might as well create these files to prevent unnecessary console messages
 	ln -sf /srcds/srv/bin/steamclient.so ~/.steam/sdk32/ 2> /dev/null || true
 	(cd /srcds/srv/$APP_MAIN_FOLDER/ && touch cfg/default.cfg cfg/server.cfg)

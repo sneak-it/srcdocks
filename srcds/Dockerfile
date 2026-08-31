@@ -1,4 +1,4 @@
-FROM debian:bullseye-slim as entrypoint
+FROM debian:trixie-slim AS entrypoint
 
 RUN apt-get update \
 		&& apt-get install -y \
@@ -8,7 +8,7 @@ COPY ./srcds/main.cpp ./
 RUN gcc -o main main.cpp
 
 
-FROM debian:bullseye-slim
+FROM debian:trixie-slim
 
 ENV APP_NAME=csgo
 ENV SRCDS_ARGS=""
@@ -29,12 +29,12 @@ RUN $run_before_apt
 RUN apt-get update \
 		&& apt-get install -y --no-install-recommends --no-install-suggests \
 #			lib32gcc1 \
-			libicu67 \
+			libicu76 \
 			lib32stdc++6 \
 			lib32z1 \
 #			procps \
 			ca-certificates \
-			netcat \
+			netcat-openbsd \
 			curl \
 			$apt_install_packages
 
