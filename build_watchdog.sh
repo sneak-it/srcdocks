@@ -1,3 +1,3 @@
 #!/bin/sh
 
-docker build -t kinsi55/srcdocks:latest -t kinsi55/srcdocks:watchdog -f watchdog/Dockerfile .
+docker build -t srcdocks:latest -t srcdocks:watchdog -f watchdog/Dockerfile .

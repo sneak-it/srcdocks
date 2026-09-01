@@ -1,6 +1,6 @@
 services:
   watchdog:
-    image: ghcr.io/sneak-it/srcdocks:watchdog
+    image: ghcr.io/sneak-it/srcdocks:watchdog-develop
     restart: unless-stopped
     environment:
       APPS: "csgo:740,cs2cl:730"
@@ -11,7 +11,7 @@ services:
       - repo:/repo
 
   csgo:
-    image: ghcr.io/sneak-it/srcdocks:server
+    image: ghcr.io/sneak-it/srcdocks:server-develop
     restart: unless-stopped
     depends_on:
       - watchdog
@@ -36,7 +36,7 @@ services:
       - ./csgo/maps:/overlays/maps
 
   cs2:
-    image: kinsi55/srcdocks:server
+    image: ghcr.io/sneak-it/srcdocks:server-develop
     restart: unless-stopped
     depends_on:
       - watchdog
