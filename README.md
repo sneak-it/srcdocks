@@ -14,8 +14,8 @@ The watchdogs purpose is to keep the local "repository" of the desired servers, 
 
 #### Env variables:
 
-1. `SM_VERSION` - Major SourceMod version to maintain, currently defaults to 1.10 (Stable)
-2. `MM_VERSION` - Major MetaMod version to maintain, currently defaults to 1.11 (Stable)
+1. `SM_VERSION` - Major SourceMod version to maintain, currently defaults to 1.12 (Stable)
+2. `MM_VERSION` - Major MetaMod version to maintain, currently defaults to 1.12 (Stable)
 3. `KEEPCOUNT` - The amount of versions to store per server type
 4. `APPS` - Which *server types* should be maintained
 5. `STEAMCMD_LOGIN` - Login details passed to SteamCMD. Format is `accountname [password] [MFA Code]`

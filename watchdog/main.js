@@ -307,8 +307,8 @@ const addons = {
 	latestSM: fs.existsSync("/repo/sm/version") ? fs.readFileSync("/repo/sm/version") : ""
 };
 
-const baseUrlMM = `https://mms.alliedmods.net/mmsdrop/${process.env.MM_VERSION || "1.11"}`;
-const baseUrlSM = `https://sm.alliedmods.net/smdrop/${process.env.SM_VERSION || "1.10"}`;
+const baseUrlMM = `https://mms.alliedmods.net/mmsdrop/${process.env.MM_VERSION || "1.12"}`;
+const baseUrlSM = `https://sm.alliedmods.net/smdrop/${process.env.SM_VERSION || "1.12"}`;
 
 // A 404 page must not become a version string, and then a download URL.
 const getText = (url) => fetch(url).then(x => {
