@@ -87,7 +87,7 @@ class AppManager {
 
 /** @type {AppManager[]} */
 const apps =
-	(process.env.APPS || "csgo:740:730")
+	(process.env.APPS || "csgo:740")
 		.split(",")
 		.map(section => {
 			const [name, downloadId, versionId] = section.split(":");

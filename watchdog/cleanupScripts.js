@@ -1,5 +1,26 @@
 const fs = require("fs");
 
+// Legacy CS:GO moved to its own AppID
+const CSGO_LEGACY_APPID = "4465480";
+
+const patchSteamInfAppId = (content) => content.replace(/^appID=730\b/m, `appID=${CSGO_LEGACY_APPID}`);
+
+const setLegacyAppId = (path) => {
+	if(process.env.CSGO_APPID_PATCH === "0")
+		return console.log("CSGO_APPID_PATCH=0, leaving steam.inf appID as shipped");
+
+	const file = `${path}/csgo/steam.inf`;
+	const patched = patchSteamInfAppId(fs.readFileSync(file, "utf8"));
+
+	if(!patched.includes(`appID=${CSGO_LEGACY_APPID}`))
+		return console.warn("No appID=730 line in %s, leaving it as-is", file);
+
+	// Version dirs are hardlinked to latest/, so replace the file instead of writing through it
+	fs.unlinkSync(file);
+	fs.writeFileSync(file, patched);
+	console.log("Set steam.inf appID to %s", CSGO_LEGACY_APPID);
+};
+
 module.exports = {
 	740: [
 		// Delete Windows / 64bit files
@@ -43,7 +64,9 @@ module.exports = {
 		// These files arent really big but theres many of them
 		"rm -rf bin/v8_winxp bin/prefabs bin/locales",
 		`rm -rf csgo/scripts/hammer`,
-		`rm -rf csgo/materials/panorama`
+		`rm -rf csgo/materials/panorama`,
+
+		setLegacyAppId
 	],
 	730: [
 		// THEY INCLUDE BUILDCHAIN STUFF IN THE RELEASE. 8000 FILES
@@ -89,3 +112,27 @@ game/bin/linuxsteamrt64/cs2 -dedicated $@`),
 		`cp /steamcmd/linux64/steamclient.so ./`
 	]
 };
+
+if(require.main === module) {
+	const assert = require("assert");
+
+	// Version fields are sample values only; the point is that they come back byte-identical,
+	// so whatever build Valve ships keeps its own versions.
+	assert.strictEqual(
+		patchSteamInfAppId("ClientVersion=1575\nappID=730\nPatchVersion=1.38.8.1\n"),
+		"ClientVersion=1575\nappID=4465480\nPatchVersion=1.38.8.1\n"
+	);
+	// Only the standalone line, not a longer ID or an unrelated key
+	assert.strictEqual(patchSteamInfAppId("appID=7300\n"), "appID=7300\n");
+	assert.strictEqual(patchSteamInfAppId("ServerAppID=730\n"), "ServerAppID=730\n");
+	// CRLF depots keep their line ending
+	assert.strictEqual(patchSteamInfAppId("appID=730\r\n"), "appID=4465480\r\n");
+
+	// Opting out returns before any filesystem access, so a bogus path cannot throw
+	process.env.CSGO_APPID_PATCH = "0";
+	assert.doesNotThrow(() => setLegacyAppId("/nonexistent"));
+	delete process.env.CSGO_APPID_PATCH;
+	assert.throws(() => setLegacyAppId("/nonexistent"), {code: "ENOENT"});
+
+	console.log("cleanupScripts: ok");
+}
