@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [master, develop]
+    tags: ["v*"]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+
+  quality:
+    name: Lint
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: shellcheck
+        run: shellcheck ./*.sh srcds/*.sh
+
+      - name: oxlint
+        run: npx --yes oxlint@1.80.0 watchdog/
+
+  docker-build:
+    name: Docker Build
+    needs: quality
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: watchdog
+            dockerfile: watchdog/Dockerfile
+          - image: server
+            dockerfile: srcds/Dockerfile
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4.3.0
+
+      - name: Build ${{ matrix.image }} image
+        uses: docker/build-push-action@v7.3.0
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: false
+          tags: srcdocks:${{ matrix.image }}
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
