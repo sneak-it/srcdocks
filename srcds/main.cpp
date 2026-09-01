@@ -73,7 +73,7 @@ int execServer(void) {
 
 struct timeval tv;
 
-int main(int argc,char** argv) {
+int main() {
 	while(!shouldEnd) {
     gettimeofday(&tv, NULL);
 
