@@ -82,7 +82,7 @@ loadLatestVersion() {
 	(cd /srcds/srv/$APP_MAIN_FOLDER/ && touch cfg/default.cfg cfg/server.cfg)
 
 	if [[ $NO_BSP_CVAR == "1" && $APP_NAME != "cs2cl" ]]; then
-		rm /srcds/srv/$APP_MAIN_FOLDER/bspconvar_whitelist.txt
+		rm -f /srcds/srv/$APP_MAIN_FOLDER/bspconvar_whitelist.txt
 	fi
 }
 
