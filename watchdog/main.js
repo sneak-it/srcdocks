@@ -2,8 +2,9 @@
 //const docker = new Docker({socketPath: '/var/run/docker.sock'});
 
 const fs = require("fs");
-const {spawn, execSync, exec} = require("child_process");
+const {spawn, execSync, exec, execFile} = require("child_process");
 const execP = (require("util")).promisify(exec);
+const execFileP = (require("util")).promisify(execFile);
 
 const repoDir = "/repo";
 const updateCheckUrl = "http://api.steampowered.com/ISteamApps/UpToDateCheck/v0001?version=1&format=json&appid=";
@@ -14,6 +15,7 @@ process.on("SIGTERM", () => {
 });
 
 const cleanupScripts = require("./cleanupScripts");
+const {isAddonTarball} = require("./addonFilename");
 
 function getPatchVersionFromIni(iniContent) {
 	const match = /PatchVersion=([0-9.]+)/.exec(iniContent)
@@ -234,7 +236,7 @@ const downloadManager = new (class {
 		let oldVersion;
 
 		try {
-			oldVersion = execSync(`set -o pipefail; ls -td -- ${appBaseDir}/v_*/ | head -n 1`, {
+			oldVersion = execSync(`set -o pipefail; ls -td -- "${appBaseDir}"/v_*/ | head -n 1`, {
 				shell: "/bin/bash",
 				encoding: "utf8"
 			});
@@ -247,9 +249,9 @@ const downloadManager = new (class {
 		const installedVersion = getInstalledVersion(AppManager.getSteamInfPath(name));
 		const curVersionDir = `${appBaseDir}/v_${installedVersion}`
 
-		execSync(`mkdir -p ${curVersionDir}`);
-		execSync(`rm -rf ${curVersionDir}/* || true`);
-		execSync(`cp -rl ${appBaseDir}/latest/* ${curVersionDir}`);
+		execSync(`mkdir -p "${curVersionDir}"`);
+		execSync(`rm -rf "${curVersionDir}"/* || true`);
+		execSync(`cp -rl "${appBaseDir}"/latest/* "${curVersionDir}"`);
 
 		lastGameUpdate = Date.now();
 
@@ -277,15 +279,15 @@ const downloadManager = new (class {
 			// );
 
 			execSync(
-				`rsync --dry-run --del --recursive --out-format=\\>\\>\\>\\ %n ${curVersionDir}/ ${oldVersion} | ` +
+				`rsync --dry-run --del --recursive --out-format=\\>\\>\\>\\ %n "${curVersionDir}"/ "${oldVersion}" | ` +
 				`grep -i '\\(>>>\\|deleting\\) .*[^/]' | ` +
 				`sed 's#^\\(>>>\\|deleting\\) ##' > ` +
-				`${curVersionDir}/DIFF.txt`
+				`"${curVersionDir}/DIFF.txt"`
 			);
 		}
 
 		// Only keep the latest N versions stored
-		execSync(`rm -r $(ls -td ${appBaseDir}/v_*/ | tail -n+${(Math.max(0, parseInt(process.env.KEEPCOUNT)) || 3) + 1}) 2> /dev/null || true`);
+		execSync(`rm -r $(ls -td "${appBaseDir}"/v_*/ | tail -n+${(Math.max(0, parseInt(process.env.KEEPCOUNT)) || 3) + 1}) 2> /dev/null || true`);
 	}
 })
 
@@ -312,7 +314,7 @@ const baseUrlSM = `https://sm.alliedmods.net/smdrop/${process.env.SM_VERSION || 
 const getText = (url) => fetch(url).then(x => {
 	if(!x.ok) throw new Error(`HTTP ${x.status} for ${url}`);
 	return x.text();
-});
+}).then(text => text.trim());
 
 async function checkAddonUpdates(initial) {
 	// Check for addon updates up to 2 days after a game update
@@ -335,16 +337,24 @@ async function checkAddonUpdates(initial) {
 	]);
 
 	async function dl(whatShort, base, path) {
-		execSync(`rm -rf /tmp/${whatShort} || true`);
+		if(!isAddonTarball(path))
+			throw new Error(`Refusing suspicious addon filename: ${JSON.stringify(path)}`);
 
-		await execP(`set -o pipefail; curl -fsSL --proto '=https' --proto-redir '=https' "${base}/${path}" | tar xz --no-same-owner -C /tmp --one-top-level=${whatShort}`, {shell: "/bin/bash"})
+		const tarball = `/tmp/${whatShort}.tar.gz`;
+
+		execSync(`rm -rf /tmp/${whatShort} ${tarball} || true`);
+
+		await execFileP("curl", ["-fsSL", "--proto", "=https", "--proto-redir", "=https",
+			"-o", tarball, `${base}/${path}`]);
+		await execFileP("tar", ["xzf", tarball, "--no-same-owner", "-C", "/tmp",
+			`--one-top-level=${whatShort}`]);
 
 		// World-readable so server containers on any UID can read; only the watchdog writes.
-		await execP(`chmod -R a+rX,u+w,go-w /tmp/${whatShort}/`);
+		await execFileP("chmod", ["-R", "a+rX,u+w,go-w", `/tmp/${whatShort}/`]);
 
 		await execP(`rm -rf /repo/${whatShort}/* || true`);
 		await execP(`mv /tmp/${whatShort}/* /repo/${whatShort}/`);
-		await execP(`rm -rf /tmp/${whatShort}`);
+		await execP(`rm -rf /tmp/${whatShort} ${tarball}`);
 	}
 
 	if(latestMM && latestMM != addons.latestMM) {
