@@ -49,6 +49,7 @@ The entire server structure is rebuilt on every restart, so any files actively w
 8. `VERSION_PIN` - Can be used to pin the Server to a specific version rather than using the latest version (Full folder name, ex v_13337)
 9. `FAKELATEST` - When set / not empty, the server will use the `steam.inf` file from the latest version, no matter what version the server files are actually from. Game Updates often are non-breaking to the network protocol but can be breaking to plugins, this can be used as a stopgap in case of breaking updates to get the server back up until patches are available for the parts that broke.
 10. `AUTOUPDATE` - When unset or 1, defaults to server auto updating. When set to 0, server will NOT automatically update.
+11. `SRCDS_BIN` - Name of the server binary to run, defaults to `srcds_linux`. Set this to `srcds_linux64` for games that only ship a 64bit binary. Ignored when `SRCDS_RUN=1`, as `srcds_run` picks the binary itself.
 
 IP / PORT are also what will be accessed to do the healthcheck. If you need to access a different IP/port for that you can override it with `HEALTH_IP` and `HEALTH_PORT` respectively. A wildcard `IP` (`0.0.0.0` / `::`) is a bind address rather than a destination, so in that case the healthcheck queries the containers own hostname instead, as SRCDS does not answer queries arriving on loopback.
 

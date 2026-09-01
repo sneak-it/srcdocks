@@ -14,7 +14,7 @@ fi
 
 runServerCustom() {
 	export LD_LIBRARY_PATH="/srcds/srv:/srcds/srv/bin"
-	./srcds_linux -game $APP_NAME $SRCDS_ARGS -strictportbind -port ${PORT-27015} -ip ${IP-0.0.0.0} $AUTOP_FLAG -nobreakpad
+	./${SRCDS_BIN-srcds_linux} -game $APP_NAME $SRCDS_ARGS -strictportbind -port ${PORT-27015} -ip ${IP-0.0.0.0} $AUTOP_FLAG -nobreakpad
 }
 
 runServer() {
