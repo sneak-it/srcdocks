@@ -1,0 +1,9 @@
+{
+  "env": { "node": true, "es2024": true },
+  "categories": { "correctness": "deny", "suspicious": "deny" },
+  "rules": {
+    "no-undef": "deny",
+    "no-unused-vars": "deny",
+    "eqeqeq": "warn"
+  }
+}

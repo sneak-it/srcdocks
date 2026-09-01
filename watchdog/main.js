@@ -22,7 +22,7 @@ function getPatchVersionFromIni(iniContent) {
 		return match[1].replace(/[^0-9]/g, "");
 }
 
-function getInstalledVersion(path = `${basedir}/latest/${appStuff.name}/steam.inf`) {
+function getInstalledVersion(path) {
 	try {
 		return getPatchVersionFromIni(fs.readFileSync(path))
 	} catch(ex) {
