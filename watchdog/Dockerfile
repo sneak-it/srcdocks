@@ -1,8 +1,13 @@
-FROM node:26-trixie-slim AS node
+FROM node:26-trixie-slim AS build
 
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+# The upstream node binary ships unstripped; symbols are a third of its size
 RUN apt-get update \
-		&& apt-get install -y --no-install-recommends binutils \
-		&& strip /usr/local/bin/node
+		&& apt-get install -y --no-install-recommends binutils curl ca-certificates \
+		&& strip /usr/local/bin/node \
+		&& mkdir /steamcmd \
+		&& curl -sqL "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz" | tar zxf - -C /steamcmd
 
 FROM debian:trixie-slim
 
@@ -18,7 +23,6 @@ ARG UID=1000
 RUN apt-get update \
 		&& apt-get install -y --no-install-recommends --no-install-suggests \
 			ca-certificates \
-			curl \
 			lib32gcc-s1 \
 			libatomic1 \
 			libstdc++6 \
@@ -28,14 +32,11 @@ RUN apt-get update \
 		&& rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Only the node binary; npm is never pulled into the final image
-COPY --from=node /usr/local/bin/node /usr/local/bin/node
+COPY --from=build /usr/local/bin/node /usr/local/bin/node
 
 RUN useradd -lm -u $UID srcds
 
-WORKDIR /steamcmd
-
-RUN curl -sqL "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz" | tar zxf - \
-		&& chown -R srcds /steamcmd
+COPY --from=build --chown=srcds /steamcmd /steamcmd
 
 VOLUME ["/repo"]
 

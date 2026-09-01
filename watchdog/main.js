@@ -344,8 +344,12 @@ async function checkAddonUpdates(initial) {
 
 		execSync(`rm -rf /tmp/${whatShort} ${tarball} || true`);
 
-		await execFileP("curl", ["-fsSL", "--proto", "=https", "--proto-redir", "=https",
-			"-o", tarball, `${base}/${path}`]);
+		const res = await fetch(`${base}/${path}`);
+		// Refuse a redirect that downgrades to plaintext
+		if(!res.ok || !res.url.startsWith("https:"))
+			throw new Error(`HTTP ${res.status} from ${res.url} for ${base}/${path}`);
+
+		await fs.promises.writeFile(tarball, res.body);
 		await execFileP("tar", ["xzf", tarball, "--no-same-owner", "-C", "/tmp",
 			`--one-top-level=${whatShort}`]);
 
