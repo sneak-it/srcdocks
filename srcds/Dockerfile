@@ -5,7 +5,7 @@ RUN apt-get update \
 			build-essential
 
 COPY ./srcds/main.cpp ./
-RUN gcc -o main main.cpp
+RUN g++ -Wall -Wextra -o main main.cpp
 
 
 FROM debian:trixie-slim
