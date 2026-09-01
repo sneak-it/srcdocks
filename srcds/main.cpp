@@ -8,16 +8,16 @@
 
 int forkPid = -1;
 bool inited = false;
-bool shouldEnd = false;
+volatile sig_atomic_t shouldEnd = 0;
 
 
 int restartDelay = 1;
-int lastStart = 0;
+time_t lastStart = 0;
 
 void exitHandler(int /*signum*/) {
 	if(!shouldEnd) {
 		printf("Graceful shutdown request...\n");
-		shouldEnd = true;
+		shouldEnd = 1;
 
 		// This will send sigint to EVERYTHING, which is fine for me.
 		kill(0, SIGTERM);
@@ -25,7 +25,7 @@ void exitHandler(int /*signum*/) {
 }
 
 void child() {
-	shouldEnd = true;
+	shouldEnd = 1;
 
 	if(system("/srcds/linkLatest.sh") != 0) {
 		exit(1);
@@ -63,7 +63,7 @@ int execServer(void) {
 	}
 
 	if(forkPid == 0) {
-		shouldEnd = true;
+		shouldEnd = 1;
 		child();
 		return 0;
 	}
