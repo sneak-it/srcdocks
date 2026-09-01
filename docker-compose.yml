@@ -1,0 +1,60 @@
+services:
+  watchdog:
+    image: ghcr.io/sneak-it/srcdocks:watchdog
+    restart: unless-stopped
+    environment:
+      APPS: "csgo:740,cs2cl:730"
+      STEAMCMD_LOGIN: "anonymous"
+      KEEPCOUNT: 3
+      CSGO_APPID_PATCH: 1
+    volumes:
+      - repo:/repo
+
+  csgo:
+    image: ghcr.io/sneak-it/srcdocks:server
+    restart: unless-stopped
+    depends_on:
+      - watchdog
+    # SRCDS needs a pty, without one it never runs its startup commands
+    stdin_open: true
+    tty: true
+    environment:
+      APP_NAME: csgo
+      PORT: 27015
+      NO_BSP_CVAR: 1
+      STOCK_SM_PLUGINS: "basecommands,basebans"
+      SRCDS_ARGS: >-
+        -tickrate 128 -usercon +game_type 0 +game_mode 1 +map de_dust2
+        +sv_setsteamaccount YOUR_GSLT_FOR_APPID_4465480
+    ports:
+      - "27015:27015/udp"
+      - "27015:27015/tcp"
+    volumes:
+      - repo:/repo:ro
+      - ./csgo/custom:/custom
+      - ./layers/sourcemod-plugins:/layers/plugins
+      - ./csgo/maps:/overlays/maps
+
+  cs2:
+    image: kinsi55/srcdocks:server
+    restart: unless-stopped
+    depends_on:
+      - watchdog
+    stdin_open: true
+    tty: true
+    environment:
+      APP_NAME: cs2cl
+      PORT: 27025
+      SRCDS_ARGS: >-
+        -dedicated -console -usercon +game_type 0 +game_mode 1 +map de_dust2
+        +sv_setsteamaccount YOUR_GSLT_FOR_APPID_730
+    ports:
+      - "27025:27025/udp"
+      - "27025:27025/tcp"
+    volumes:
+      - repo:/repo:ro
+      - ./cs2/custom:/custom
+      - ./cs2/maps:/overlays/maps
+
+volumes:
+  repo:
