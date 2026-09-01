@@ -50,7 +50,9 @@ The entire server structure is rebuilt on every restart, so any files actively w
 9. `FAKELATEST` - When set / not empty, the server will use the `steam.inf` file from the latest version, no matter what version the server files are actually from. Game Updates often are non-breaking to the network protocol but can be breaking to plugins, this can be used as a stopgap in case of breaking updates to get the server back up until patches are available for the parts that broke.
 10. `AUTOUPDATE` - When unset or 1, defaults to server auto updating. When set to 0, server will NOT automatically update.
 
-IP / PORT are also what will be accessed to do the healthcheck. If you need to access a different IP/port for that you can override it with `HEALTH_IP` and `HEALTH_PORT` respectively
+IP / PORT are also what will be accessed to do the healthcheck. If you need to access a different IP/port for that you can override it with `HEALTH_IP` and `HEALTH_PORT` respectively. A wildcard `IP` (`0.0.0.0` / `::`) is a bind address rather than a destination, so in that case the healthcheck queries the containers own hostname instead, as SRCDS does not answer queries arriving on loopback.
+
+**⚠ The server needs a pty. Set `stdin_open: true` and `tty: true` (`docker run -it`), otherwise SRCDS never executes its startup commands, meaning your `+map` never runs, the server sits hibernating without a level loaded, answers no queries and eventually segfaults.**
 
 **ℹ Depending on how your network is set up, you might want to / have to use host networking instead of a bridge, for example when you're using a failover IP, as otherwise you're unable to bind to your failover IP, and with GSLT / the game coordinator that would mean players need to access your server trough your primary ip, not your failover IP**
 

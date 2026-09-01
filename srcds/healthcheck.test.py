@@ -79,6 +79,16 @@ for label, replies, challenged, port in cases:
     if challenged:
         assert received[1] == CHALLENGED_REQUEST, f'{label}: bad retry {received[1]!r}'
 
+# IP=0.0.0.0 is a bind address, not a destination, so the check has to fall back to the hostname
+host_addr = socket.gethostbyname(socket.gethostname())
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+sock.bind((host_addr, 27417))
+threading.Thread(target=serve, args=(sock, [SOURCE], False), daemon=True).start()
+res = subprocess.run(['bash', SCRIPT], env={'IP': '0.0.0.0', 'PORT': '27417', 'PATH': '/usr/bin:/bin'},
+                     capture_output=True)
+print(f'wildcard IP: exit={res.returncode} out={res.stdout!r}')
+assert res.returncode == 0, 'wildcard IP'
+
 res = check(27415)  # nothing listening
 print(f'no server: exit={res.returncode}')
 assert res.returncode == 1, 'no server'

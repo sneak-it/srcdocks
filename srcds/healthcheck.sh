@@ -1,7 +1,13 @@
 #!/bin/bash
 
-ip=${HEALTH_IP-${IP-$(hostname)}}
 port=${HEALTH_PORT-${PORT-27015}}
+
+# A wildcard bind address is not a destination: it resolves to loopback, where srcds ignores queries
+ip=${HEALTH_IP-$IP}
+if [[ -z $ip || $ip == "0.0.0.0" || $ip == "::" ]]
+then
+	ip=$(hostname)
+fi
 
 # Replies are handled as hex text because bash cannot hold the nullbytes in them
 query() {
