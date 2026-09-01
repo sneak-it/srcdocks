@@ -34,7 +34,7 @@ loadLatestVersion() {
 	local serverFiles=$VERSION_PIN
 	local latestVersion=$(ls -td -- /repo/$APP_NAME/v_*/ | head -n 1);
 
-	if [ $? -ne 0 ]
+	if [ -z "$latestVersion" ]
 	then
 		echo "No Serverfiles found. Looked for '/repo/$APP_NAME/v_*'"
 		exit 1
@@ -81,7 +81,7 @@ loadLatestVersion() {
 	ln -sf /srcds/srv/bin/steamclient.so ~/.steam/sdk32/ 2> /dev/null || true
 	(cd /srcds/srv/$APP_MAIN_FOLDER/ && touch cfg/default.cfg cfg/server.cfg)
 
-	if [[ $NO_BSP_CVAR == "1" && APP_NAME != "cs2cl" ]]; then
+	if [[ $NO_BSP_CVAR == "1" && $APP_NAME != "cs2cl" ]]; then
 		rm /srcds/srv/$APP_MAIN_FOLDER/bspconvar_whitelist.txt
 	fi
 }
