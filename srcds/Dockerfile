@@ -36,19 +36,16 @@ RUN apt-get update \
 			ca-certificates \
 			netcat-openbsd \
 			curl \
-			$apt_install_packages
-
-RUN mkdir /overlays
-
-# Cleanup
-RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+			$apt_install_packages \
+		&& mkdir /overlays \
+		&& rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 WORKDIR /srcds
 
 COPY ./srcds/*.sh ./
 COPY --from=entrypoint main ./
 
-RUN useradd -m -u $UID srcds && mkdir srv && chown srcds srv && chmod +rx *.sh
+RUN useradd -lm -u $UID srcds && mkdir srv && chown srcds srv && chmod +rx *.sh
 
 USER srcds
 
