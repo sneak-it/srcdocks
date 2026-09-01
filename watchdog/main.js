@@ -236,7 +236,7 @@ const downloadManager = new (class {
 		let oldVersion;
 
 		try {
-			oldVersion = execSync(`set -o pipefail; ls -td -- "${appBaseDir}"/v_*/ | head -n 1`, {
+			oldVersion = execSync(`set -o pipefail; ls -td -- "${appBaseDir}"/v_*/ 2>/dev/null | head -n 1`, {
 				shell: "/bin/bash",
 				encoding: "utf8"
 			});
