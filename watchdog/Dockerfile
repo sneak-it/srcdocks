@@ -1,5 +1,9 @@
 FROM node:26-trixie-slim AS node
 
+RUN apt-get update \
+		&& apt-get install -y --no-install-recommends binutils \
+		&& strip /usr/local/bin/node
+
 FROM debian:trixie-slim
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
@@ -11,8 +15,7 @@ ENV APPS="cs2cl:730"
 ENV KEEPCOUNT=3
 ARG UID=1000
 
-RUN dpkg --add-architecture i386 \
-		&& apt-get update \
+RUN apt-get update \
 		&& apt-get install -y --no-install-recommends --no-install-suggests \
 			ca-certificates \
 			curl \

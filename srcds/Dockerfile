@@ -1,8 +1,7 @@
 FROM debian:trixie-slim AS entrypoint
 
 RUN apt-get update \
-		&& apt-get install -y \
-			build-essential
+		&& apt-get install -y --no-install-recommends g++
 
 COPY ./srcds/main.cpp ./
 RUN g++ -Wall -Wextra -o main main.cpp
@@ -35,7 +34,6 @@ RUN apt-get update \
 #			procps \
 			ca-certificates \
 			netcat-openbsd \
-			curl \
 			$apt_install_packages \
 		&& mkdir /overlays \
 		&& rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
