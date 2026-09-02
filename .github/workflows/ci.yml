@@ -29,6 +29,20 @@ jobs:
       - name: oxlint
         run: npx --yes oxlint@1.80.0 watchdog/
 
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: run tests
+        run: |
+          for test in tests/*.test.py
+          do
+          	python3 "$test"
+          done
+
   docker-build:
     name: Docker Build
     needs: quality

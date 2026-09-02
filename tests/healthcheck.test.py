@@ -9,7 +9,7 @@ import subprocess
 import threading
 from pathlib import Path
 
-SCRIPT = Path(__file__).with_name('healthcheck.sh')
+SCRIPT = Path(__file__).parents[1] / 'srcds' / 'healthcheck.sh'
 
 # Byte sequences below are the examples from the wiki, verbatim
 
