@@ -122,7 +122,7 @@ const downloadManager = new (class {
 			this app this would end up returning false and thus not enqueue the update - but it will repeadetly
 			try again and eventually check if the then downloaded version is already the latest one
 		*/
-		if(this.tasks.some(x => /*x.version == version ||*/ x.manager == manager))
+		if(this.tasks.some(x => /*x.version == version ||*/ x.manager === manager))
 			return false;
 
 		const installedVersion = getInstalledVersion(manager.getSteamInfPath());
@@ -303,8 +303,8 @@ const manageMM = !!process.env.MM_VERSION?.trim?.();
 const manageSM = !!process.env.SM_VERSION?.trim?.();
 
 const addons = {
-	latestMM: fs.existsSync("/repo/mm/version") ? fs.readFileSync("/repo/mm/version") : "",
-	latestSM: fs.existsSync("/repo/sm/version") ? fs.readFileSync("/repo/sm/version") : ""
+	latestMM: fs.existsSync("/repo/mm/version") ? fs.readFileSync("/repo/mm/version", "utf8") : "",
+	latestSM: fs.existsSync("/repo/sm/version") ? fs.readFileSync("/repo/sm/version", "utf8") : ""
 };
 
 const baseUrlMM = `https://mms.alliedmods.net/mmsdrop/${process.env.MM_VERSION || "1.12"}`;
@@ -361,7 +361,7 @@ async function checkAddonUpdates(initial) {
 		await execP(`rm -rf /tmp/${whatShort} ${tarball}`);
 	}
 
-	if(latestMM && latestMM != addons.latestMM) {
+	if(latestMM && latestMM !== addons.latestMM) {
 		dl("mm", baseUrlMM, latestMM).then(() => {
 			addons.latestMM = latestMM;
 			console.log("Updated Metamod to `%s`", latestMM);
@@ -371,7 +371,7 @@ async function checkAddonUpdates(initial) {
 		});
 	}
 
-	if(latestSM && latestSM != addons.latestSM) {
+	if(latestSM && latestSM !== addons.latestSM) {
 		dl("sm", baseUrlSM, latestSM).then(() => {
 			addons.latestSM = latestSM;
 			// Scripting folder isnt needed on the server
