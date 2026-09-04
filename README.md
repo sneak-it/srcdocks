@@ -80,7 +80,7 @@ Like layers, everything in the custom directory is linked into the server on lau
 
 ### Overlays (/overlays/*)
 
-Overlays are basically a combination and more powerful alterantive to the two prior features. Overlays are used to link entire folders into the server. One example for this would be if you want to have a shared folder of maps thats used across all servers. This would of course work using a layer since it would link all the maps into the server on start, but if you add a map afterwards it would not be available to the server, and if the server was to download a map at runtime, it would not make it to the host folder.
+Overlays are basically a combination and more powerful alternative to the two prior features. Overlays are used to link entire folders into the server. One example for this would be if you want to have a shared folder of maps thats used across all servers. This would of course work using a layer since it would link all the maps into the server on start, but if you add a map afterwards it would not be available to the server, and if the server was to download a map at runtime, it would not make it to the host folder.
 
 Another example would be having recorded demos actually save to the host folder instead of vanishing on server restart.
 
