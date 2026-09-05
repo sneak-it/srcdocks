@@ -61,6 +61,7 @@ The entire server structure is rebuilt on every restart, so any files actively w
 9. `FAKELATEST` - When set / not empty, the server will use the `steam.inf` file from the latest version, no matter what version the server files are actually from. Game Updates often are non-breaking to the network protocol but can be breaking to plugins, this can be used as a stopgap in case of breaking updates to get the server back up until patches are available for the parts that broke.
 10. `AUTOUPDATE` - When unset or 1, defaults to server auto updating. When set to 0, server will NOT automatically update.
 11. `SRCDS_BIN` - Name of the server binary to run, defaults to `srcds_linux`. Set this to `srcds_linux64` for games that only ship a 64bit binary. Ignored when `SRCDS_RUN=1`, as `srcds_run` picks the binary itself.
+12. `OVERLAY_MODE` - `replace` (default) or `merge`. Controls whether an overlay replaces the folder it is mounted over or adds to it. See [Overlays](#overlays-overlays).
 
 IP / PORT are also what will be accessed to do the healthcheck. If you need to access a different IP/port for that you can override it with `HEALTH_IP` and `HEALTH_PORT` respectively. A wildcard `IP` (`0.0.0.0` / `::`) is a bind address rather than a destination, so in that case the healthcheck queries the containers own hostname instead, as SRCDS does not answer queries arriving on loopback.
 
@@ -98,6 +99,57 @@ The structure of custom folders and layers is exactly the same, except that file
 ##### Overlays:
 
 Overlays function very similarly to the Custom folder and Layers, except the startup script of the server looks for any mountpoints in the Overlays folder and links those folders in place of what might already be there. So for an example, you could have a folder on your host called `workshopmaps` which you then mount to the server container at the path `/overlays/maps/workshop`. the host workshop maps folder is then linked in place of the `<mod>/maps/workshop` folder
+
+With `OVERLAY_MODE=merge` the folder is seeded with whatever the game shipped there before the swap, so the overlay *adds to* that folder rather than replacing it. See [Merge mode](#merge-mode-overlay_modemerge).
+
+#### Merge mode (`OVERLAY_MODE=merge`)
+
+By default an overlay **replaces** the folder it is mounted over: the shipped contents are deleted and
+the folder is linked to your host folder. That is what you want for demos or SourceMod logs, and what
+you do *not* want for maps, since Source requires every map to sit directly in `<mod>/maps` and you
+would lose the stock ones.
+
+`OVERLAY_MODE=merge` seeds your host folder with the shipped contents first, as symlinks into `/repo`.
+`<mod>/maps` then *is* your host folder, holding both stock and custom maps. Adding a map while the
+server runs makes it immediately available, with no restart, and anything the server downloads at
+runtime is kept. The stock maps cost about 110 bytes each as links; **no map data is duplicated**.
+
+The shared-maps setup this is for is one folder **per game**, mounted on every server of that game:
+
+```yaml
+csgo-1:
+  environment: { APP_NAME: csgo, OVERLAY_MODE: merge }
+  volumes: [ "./shared/csgo-maps:/overlays/maps" ]
+csgo-2:
+  environment: { APP_NAME: csgo, OVERLAY_MODE: merge }
+  volumes: [ "./shared/csgo-maps:/overlays/maps" ]   # same game, same folder
+tf2-1:
+  environment: { APP_NAME: tf2, OVERLAY_MODE: merge }
+  volumes: [ "./shared/tf2-maps:/overlays/maps" ]    # its own folder
+```
+
+Do not point servers of *different* games at one folder. Each would seed its own stock files in and
+they would fight on every restart.
+
+**⚠️ Merge writes into your host folder**, which is the trade it makes. Consequences worth knowing:
+
+1. The folder must be writable by the container user (build arg `UID`, default 1000). Note that Docker
+   creates a missing bind-mount source owned by **root**, so a brand new folder usually is not. A
+   non-writable overlay is skipped with a warning rather than applied, so the server still boots with
+   its stock files instead of crash-looping with none.
+2. The folder gains symlinks pointing at `/repo/...` *container* paths. They look broken from the host
+   and will show up in any backup or `rsync` of that folder.
+3. Stale links are cleaned on every server start, so the folder is only self-maintaining for as long
+   as a server still mounts it. Detach it and the leftovers are yours to clean.
+4. Subfolders the game ships (`maps/graphs`, `maps/workshop`) appear as real directories in your folder.
+5. Servers sharing a folder while on **different `VERSION_PIN` builds** will fight over the stock
+   links, each re-pointing them at its own version on boot. Do not share a folder across pinned
+   versions. The same applies to a server with `AUTOUPDATE=0`, which never reboots and so never
+   reseeds.
+6. Do not merge an overlay over `addons/sourcemod/plugins`. `STOCK_SM_PLUGINS` is applied before
+   overlays, so merging there both defeats it and deposits stock plugin links in your folder.
+7. Several servers of one game restarting together (which is what a game update causes) briefly race
+   on the same folder. It is self-correcting and sub-second, so there is no locking.
 
 ### Extras
 
