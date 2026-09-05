@@ -95,18 +95,29 @@ assert (f.maps / 'de_nuke.bsp').is_symlink(), 'stock map was copied instead of l
 assert str((f.maps / 'de_nuke.bsp').readlink()).startswith(str(f.root / 'repo')), 'link escaped /repo'
 f.clean()
 
+# The keep guard: a reboot must leave links to the running version alone, or a server booting
+# alongside this one loses maps mid-round. A recreated link would come back with a new inode.
+f = case('current links survive a reboot')
+before = (f.maps / 'de_nuke.bsp').lstat().st_ino
+res = f.boot()
+assert res.returncode == 0, res.stderr
+assert (f.maps / 'de_nuke.bsp').lstat().st_ino == before, 'link to the running version was recreated'
+f.clean()
+
 # 3: a version bump re-points the links even though the old version is still on disk
 f = case('update tracks new version')
 f.version('v_13890', maps=STOCK + ['de_ancient.bsp'])
 assert (f.root / 'repo' / 'csgo' / 'v_13881').exists(), 'fixture: old version should still be here'
-f.boot()
+res = f.boot()
+assert res.returncode == 0, res.stderr
 assert 'de_ancient.bsp' in f.served(), f.served()
 target = str((f.maps / 'de_nuke.bsp').readlink())
 assert 'v_13890' in target, f'still pinned to the old build: {target}'
 
 # 4: after KEEPCOUNT rotation drops the old version, no dangling links are left behind
 shutil.rmtree(f.root / 'repo' / 'csgo' / 'v_13881')
-f.boot()
+res = f.boot()
+assert res.returncode == 0, res.stderr
 dangling = [p for p in f.maps.iterdir() if p.is_symlink() and not p.exists()]
 print(f'rotation leaves no dangling links: {len(dangling)} found')
 assert dangling == [], dangling
@@ -116,6 +127,15 @@ f.clean()
 f = case('replace keeps old behaviour', mode='replace',
          setup=lambda f: (f.maps / 'only_mine.bsp').touch())
 assert f.served() == ['only_mine.bsp'], f.served()
+f.clean()
+
+# A mode we do not understand must stop the boot, not silently delete the stock files
+f = Fixture()
+f.version('v_13881')
+res = f.boot(mode='Merge')
+print(f'unknown mode refuses to boot: exit={res.returncode}')
+assert res.returncode != 0, 'a typo in OVERLAY_MODE fell through to replace'
+assert 'Unknown OVERLAY_MODE' in res.stdout, res.stdout
 f.clean()
 
 # 6: /overlays itself being a mountpoint must not eat the mod folder

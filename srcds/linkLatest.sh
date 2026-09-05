@@ -3,9 +3,11 @@
 REPO=${REPO:-/repo}
 SRV=${SRV:-/srcds/srv}
 OVERLAYS=${OVERLAYS:-/overlays}
-OVERLAYS=${OVERLAYS%/}
 LAYERS=${LAYERS:-/layers}
 CUSTOM=${CUSTOM:-/custom}
+
+# A trailing slash would break both the string-appended target paths and the -lname purge patterns
+REPO=${REPO%/} SRV=${SRV%/} OVERLAYS=${OVERLAYS%/} LAYERS=${LAYERS%/} CUSTOM=${CUSTOM%/}
 
 # Set by loadLatestVersion, read by addOverlays to know which links are current
 serverFiles=""
@@ -30,13 +32,13 @@ mergeOverlay() {
 	local overlay=$1 target=$2 keep
 
 	if [[ ! -d $target ]]; then
-		echo "  Nothing shipped at '$target', not seeding"
+		echo "Nothing shipped at '$target', not seeding"
 		return 0
 	fi
 
 	# Docker creates a missing bind source as root, but we run unprivileged
 	if [[ ! -w $overlay ]]; then
-		echo "  WARNING: '$overlay' is not writable by uid $(id -u), skipping this overlay"
+		echo "WARNING: '$overlay' is not writable by uid $(id -u), skipping this overlay"
 		return 1
 	fi
 
@@ -51,11 +53,20 @@ mergeOverlay() {
 			-not -lname "$keep*" -delete || true
 	fi
 
-	echo "  Seeding stock files into '$overlay'"
-	cp -Prn "$target/." "$overlay/" || echo "  WARNING: seeding '$overlay' failed"
+	echo "Seeding stock files into '$overlay'"
+	cp -Prn "$target/." "$overlay/" || echo "WARNING: seeding '$overlay' failed"
 }
 
 addOverlays() {
+	# A typo here would silently fall through to replace and delete the stock files
+	case ${OVERLAY_MODE:-replace} in
+		replace|merge) ;;
+		*)
+			echo "Unknown OVERLAY_MODE '$OVERLAY_MODE', expected 'replace' or 'merge'"
+			exit 1
+			;;
+	esac
+
 	echo "Adding overlays..."
 	# Lord send help
 	while IFS= read -r overlay; do
@@ -65,11 +76,11 @@ addOverlays() {
 
 		local target="$SRV/$APP_MAIN_FOLDER${overlay#"$OVERLAYS"}"
 
-		echo "Mounting '$overlay' in place of '$target'"
-
 		if [[ ${OVERLAY_MODE:-replace} == "merge" ]] && ! mergeOverlay "$overlay" "$target"; then
 			continue
 		fi
+
+		echo "Mounting '$overlay' in place of '$target'"
 
 		mkdir -p "$target"
 		rm -rf "$target"
@@ -155,7 +166,7 @@ loadCleanAddons() {
 
 # cp will not merge a directory into a symlinked one, so anything whose top-level name collides
 # with an overlay gets dropped unless we descend into it explicitly
-# ponytail: only the top level is handled, a collision nested deeper still fails
+# only the top level is handled, a collision nested deeper still fails
 linkInto() {
 	local src name dest=$SRV/$APP_MAIN_FOLDER
 

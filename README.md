@@ -146,9 +146,15 @@ they would fight on every restart.
    links, each re-pointing them at its own version on boot. Do not share a folder across pinned
    versions. The same applies to a server with `AUTOUPDATE=0`, which never reboots and so never
    reseeds.
-6. Do not merge an overlay over `addons/sourcemod/plugins`. `STOCK_SM_PLUGINS` is applied before
-   overlays, so merging there both defeats it and deposits stock plugin links in your folder.
-7. Several servers of one game restarting together (which is what a game update causes) briefly race
+6. Servers sharing a folder must mount the same `/layers`, and must not use `/custom` for a path they
+   merge. Layer and custom files reach the folder as links too, and each server start deletes the ones
+   it does not have mounted, so a map that got there through one server's `/custom` is removed from
+   under the others while they run. Anything meant for every server belongs in the shared folder
+   itself, which is the point of it.
+7. Do not merge an overlay over anything under `addons/`. `STOCK_SM_PLUGINS` and the Metamod /
+   SourceMod links are applied before overlays, so merging there both defeats them and deposits stock
+   addon links in your folder.
+8. Several servers of one game restarting together (which is what a game update causes) briefly race
    on the same folder. It is self-correcting and sub-second, so there is no locking.
 
 ### Extras
