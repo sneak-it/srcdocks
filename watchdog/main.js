@@ -8,6 +8,8 @@ const execFileP = (require("util")).promisify(execFile);
 
 const repoDir = "/repo";
 const updateCheckUrl = "https://api.steampowered.com/ISteamApps/UpToDateCheck/v0001?version=1&format=json&appid=";
+// The update check endpoint is rate limited per IP, so raising this reduces failed checks
+const checkInterval = (Math.max(0, parseInt(process.env.CHECK_INTERVAL)) || 300) * 1000;
 
 // Docker Graceful shutdown
 process.on("SIGTERM", () => {
@@ -310,7 +312,7 @@ function checkAppUpdates() {
 		app.updateCheck();
 }
 
-setInterval(checkAppUpdates, 1000 * 60);
+setInterval(checkAppUpdates, checkInterval);
 checkAppUpdates();
 
 const manageMM = !!process.env.MM_VERSION?.trim?.();

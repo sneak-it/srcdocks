@@ -20,6 +20,7 @@ The watchdogs purpose is to keep the local "repository" of the desired servers, 
 4. `APPS` - Which *server types* should be maintained
 5. `STEAMCMD_LOGIN` - Login details passed to SteamCMD. Format is `accountname [password] [MFA Code]`
 6. `CSGO_APPID_PATCH` - When unset or 1, rewrites `csgo/steam.inf` to the CS:GO legacy AppID (4465480) on every 740 download. Set to 0 to leave the file as Valve ships it.
+7. `CHECK_INTERVAL` - Seconds between Steam update checks, defaults to 300 seconds (5 minutes). The endpoint is rate limited per IP and answers with an HTML error page when it throttles you, so raise this if you see failed checks in the log.
 
 **APPS** should be a comma-seperated list of which server types (CS2, CS:S, TF2, ...) you want to run using the Server image. These are passed in the format of `server_folder_name:download_appid:version_appid`, so for CS2 it is currently `cs2cl:730`. `cs2cl` in this case is important because based off that various hacks are applied to run the client binaries properly because Valve decided to not give us server binaries on release. If `download_appid` and `version_appid` match you can omit `version_appid`.
 
