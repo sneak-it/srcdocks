@@ -36,6 +36,14 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: watchdog self-checks
+        # main.js is excluded, it starts the watchdog on import
+        run: |
+          for module in watchdog/addonFilename.js watchdog/cleanupScripts.js watchdog/httpGet.js
+          do
+          	node "$module"
+          done
+
       - name: run tests
         run: |
           for test in tests/*.test.py
