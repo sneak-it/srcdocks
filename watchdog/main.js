@@ -10,6 +10,7 @@ const repoDir = "/repo";
 const updateCheckUrl = "https://api.steampowered.com/ISteamApps/UpToDateCheck/v0001?version=1&format=json&appid=";
 // The update check endpoint is rate limited per IP, so raising this reduces failed checks
 const checkInterval = (Math.max(0, parseInt(process.env.CHECK_INTERVAL)) || 300) * 1000;
+const keepCount = Math.max(0, parseInt(process.env.KEEPCOUNT)) || 3;
 
 // Docker Graceful shutdown
 process.on("SIGTERM", () => {
@@ -65,6 +66,8 @@ class AppManager {
 	}
 
 	async updateCheck() {
+		console.log("Checking %s (appid %s) for updates...", this.app.name, this.app.versionId);
+
 		try {
 			const latestVersion = await this.getLatestVersion();
 
@@ -73,7 +76,11 @@ class AppManager {
 
 				if(downloadManager.enqueueUpdate(this, latestVersion))
 					this.latestVersion = latestVersion;
+			} else if(latestVersion !== this.reportedVersion) {
+				console.log("%s is up to date at version %s", this.app.name, latestVersion);
 			}
+
+			this.reportedVersion = latestVersion;
 		} catch(ex) {
 			console.error("Failed to check for update of %s:", this.app.name, ex);
 			//throw ex;
@@ -303,17 +310,9 @@ const downloadManager = new (class {
 		}
 
 		// Only keep the latest N versions stored
-		execSync(`rm -r $(ls -td "${appBaseDir}"/v_*/ | tail -n+${(Math.max(0, parseInt(process.env.KEEPCOUNT)) || 3) + 1}) 2> /dev/null || true`);
+		execSync(`rm -r $(ls -td "${appBaseDir}"/v_*/ | tail -n+${keepCount + 1}) 2> /dev/null || true`);
 	}
 })
-
-function checkAppUpdates() {
-	for(let app of apps)
-		app.updateCheck();
-}
-
-setInterval(checkAppUpdates, checkInterval);
-checkAppUpdates();
 
 const manageMM = !!process.env.MM_VERSION?.trim?.();
 const manageSM = !!process.env.SM_VERSION?.trim?.();
@@ -325,6 +324,33 @@ const addons = {
 
 const baseUrlMM = `https://mms.alliedmods.net/mmsdrop/${process.env.MM_VERSION || "1.12"}`;
 const baseUrlSM = `https://sm.alliedmods.net/smdrop/${process.env.SM_VERSION || "1.12"}`;
+
+function checkAppUpdates() {
+	for(let app of apps)
+		app.updateCheck();
+}
+
+function logStartup() {
+	console.log("Watchdog starting, checking %s every %ss, keeping %s versions per app",
+		updateCheckUrl.split("/ISteamApps")[0], checkInterval / 1000, keepCount);
+
+	for(const {app, latestVersion} of apps)
+		console.log("  %s: download appid %s, version appid %s, installed version %s",
+			app.name, app.downloadId, app.versionId, latestVersion || "none");
+
+	console.log("  Metamod: %s", manageMM
+		? `${process.env.MM_VERSION} from ${baseUrlMM} (installed ${addons.latestMM || "none"})`
+		: "not managed, set MM_VERSION to enable");
+
+	console.log("  Sourcemod: %s", manageSM
+		? `${process.env.SM_VERSION} from ${baseUrlSM} (installed ${addons.latestSM || "none"})`
+		: "not managed, set SM_VERSION to enable");
+}
+
+logStartup();
+
+setInterval(checkAppUpdates, checkInterval);
+checkAppUpdates();
 
 async function checkAddonUpdates(initial) {
 	// Check for addon updates up to 2 days after a game update
