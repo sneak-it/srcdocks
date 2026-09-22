@@ -147,7 +147,8 @@ const downloadManager = new (class {
 		if(!this.tasks.length)
 			return;
 
-		const {manager, version} = this.tasks[0];
+		const task = this.tasks[0];
+		const {manager, version} = task;
 
 		try {
 			await this.downloadApp(`${repoDir}/${manager.app.name}`, manager.app);
@@ -162,14 +163,16 @@ const downloadManager = new (class {
 				manager.latestVersion = version;
 			}
 		} catch(ex) {
+			task.failures = (task.failures || 0) + 1;
+
 			console.error("Failed to update / download %s, retrying later...", manager.app.name, ex);
 			// We'll retry this later
 			this.tasks.push(this.tasks.shift());
 		}
 
-		if(this.tasks.length) setTimeout(() => {
-			this.work();
-		}, 1000);
+		// Back off per task, otherwise a download that always fails respawns steamcmd every second
+		if(this.tasks.length)
+			setTimeout(() => this.work(), Math.min(1000 * 2 ** (this.tasks[0].failures || 0), 300000));
 	}
 
 	async downloadApp(appBaseDir, {downloadId, name}) {
