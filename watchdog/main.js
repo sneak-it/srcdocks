@@ -73,7 +73,7 @@ class AppManager {
 					this.latestVersion = latestVersion;
 			}
 		} catch(ex) {
-			console.log("Failed to check for update of %s:", this.app.name, ex);
+			console.error("Failed to check for update of %s:", this.app.name, ex);
 			//throw ex;
 		}
 	}
@@ -209,7 +209,7 @@ const downloadManager = new (class {
 				if(Date.now() - lastLogOutput < stallCheckInterval)
 					return;
 
-				rej();
+				rej(new Error(`SteamCMD produced no output for ${stallCheckInterval / 1000}s, killing it`));
 				proc.kill("SIGKILL");
 			}, stallCheckInterval);
 
@@ -224,10 +224,19 @@ const downloadManager = new (class {
 				lastLogOutput = Date.now();
 			});
 
-			proc.on("exit", () => {
+			proc.stderr.setEncoding("utf-8");
+			proc.stderr.on("data", (data) => {
+				console.error(`[SteamCMD - ${downloadId}] ${data}`);
+				lastLogOutput = Date.now();
+			});
+
+			// Without this a spawn failure is an unhandled 'error' event, which kills the watchdog
+			proc.on("error", rej);
+
+			proc.on("exit", (code, signal) => {
 				clearInterval(stallCheck);
 				if(!finished)
-					return rej();
+					return rej(new Error(`SteamCMD exited (code ${code}, signal ${signal}) without reporting success`));
 
 				res();
 			});
@@ -242,7 +251,9 @@ const downloadManager = new (class {
 			});
 
 			oldVersion = /(.+?)\n/.exec(oldVersion)[1];
-		} catch {}
+		} catch {
+			console.log("No previous version of %s found, skipping difflist", name);
+		}
 
 		// console.log("Changed files: ", changedFiles);
 
