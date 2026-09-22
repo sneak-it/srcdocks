@@ -7,7 +7,7 @@ const execP = (require("util")).promisify(exec);
 const execFileP = (require("util")).promisify(execFile);
 
 const repoDir = "/repo";
-const updateCheckUrl = "http://api.steampowered.com/ISteamApps/UpToDateCheck/v0001?version=1&format=json&appid=";
+const updateCheckUrl = "https://api.steampowered.com/ISteamApps/UpToDateCheck/v0001?version=1&format=json&appid=";
 
 // Docker Graceful shutdown
 process.on("SIGTERM", () => {
@@ -16,6 +16,7 @@ process.on("SIGTERM", () => {
 
 const cleanupScripts = require("./cleanupScripts");
 const {isAddonTarball} = require("./addonFilename");
+const {getText, getJson} = require("./httpGet");
 
 function getPatchVersionFromIni(iniContent) {
 	const match = /PatchVersion=([0-9.]+)/.exec(iniContent)
@@ -78,10 +79,9 @@ class AppManager {
 	}
 
 	getLatestVersion() {
-		return fetch(`${updateCheckUrl}${this.app.versionId}`)
-			.then(res => res.json())
+		return getJson(`${updateCheckUrl}${this.app.versionId}`)
 			// Frozen apps (eg. legacy csgo) have no version feed; 1 still triggers the initial download.
-			.then(json => json.response.required_version || 1);
+			.then(json => json.response?.required_version || 1);
 	}
 }
 
@@ -309,12 +309,6 @@ const addons = {
 
 const baseUrlMM = `https://mms.alliedmods.net/mmsdrop/${process.env.MM_VERSION || "1.12"}`;
 const baseUrlSM = `https://sm.alliedmods.net/smdrop/${process.env.SM_VERSION || "1.12"}`;
-
-// A 404 page must not become a version string, and then a download URL.
-const getText = (url) => fetch(url).then(x => {
-	if(!x.ok) throw new Error(`HTTP ${x.status} for ${url}`);
-	return x.text();
-}).then(text => text.trim());
 
 async function checkAddonUpdates(initial) {
 	// Check for addon updates up to 2 days after a game update
