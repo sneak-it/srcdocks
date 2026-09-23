@@ -1,7 +1,9 @@
+#include <errno.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <sys/prctl.h>
 #include <sys/time.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -74,6 +76,9 @@ int execServer(void) {
 struct timeval tv;
 
 int main() {
+	// srcds outlives its wrapper shells on SIGTERM, so it has to re-parent here to be waited for
+	prctl(PR_SET_CHILD_SUBREAPER, 1);
+
 	while(!shouldEnd) {
     gettimeofday(&tv, NULL);
 
@@ -94,6 +99,9 @@ int main() {
 		printf("Restarting in %i second(s)...\n", restartDelay);
 		sleep(restartDelay);
 	}
+
+	// Exiting first would SIGKILL srcds mid-shutdown, since the container ends with PID 1
+	while(wait(NULL) > 0 || errno == EINTR) {}
 
 	return 0;
 }
